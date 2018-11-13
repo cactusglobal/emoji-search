@@ -1,8 +1,7 @@
 ## Continuous Integration setup for React Application emoji-search
 
 This setup will help you configure ci process for react applications.
-
-The repository ahfarmer/emoji-seach had been downloaded on local machine and pushed to [shridhars/emoji-search](https://github.com/shridhars/emoji-search) on github.
+The repository ahfarmer/emoji-seach has been downloaded(or can be forked) on local machine and pushed to [shridhars/emoji-search](https://github.com/shridhars/emoji-search) on github.
 
 All the autmation scripts are available under shridhars/emoji-search/automation folder
 
@@ -82,6 +81,8 @@ It includes the following stages:
 
 * Package for production
   Changes merged or pushed on master branch are baked in a docker container and pushed to docker hub registry. Snippet for packaging step in [Jenkinsfile](../Jenkinsfile)
+
+  Alternative process would be just bulding the application in docker and push minified js and css files to s3 and served using cloudfront. The new manifest file should be synced across all servers as a deployment step for the newly compiled js and css files.
 
   ```sh
   sh 'echo Call script to deploy container on production or just build pull code and perform blue green deployment with aws instances'
