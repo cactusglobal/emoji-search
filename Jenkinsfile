@@ -5,19 +5,27 @@ pipeline {
 
   environment {
     CI = 'true'
+    
+    //Git commit has to be used for publishing status
     GIT_COMMIT_HASH = sh (script: "git log -n 1 --pretty=format:'%H'", returnStdout: true)
+    
+    // Reac commit message to directly pull branch on test server after CI
     CUSTOM_PULL_TEST = sh (script: "git log -1 | grep '\\[ci pull-test\\]'", returnStatus: true)
-    REPO = 'emoji-search'
+    
+    //Github hub credentials configuration
+    REPO = 'emoji-search'    
     GIT_ACC = 'shridhars'
     GIT_CRED_TOKEN = 'gitaccesstoken'
     GIT_CREDS = credentials('gitaccesstoken')
+    
+    //Docker hub credentials configuration
     DOCKER_REG = 'shridharalve/node'
     DOCKER_REG_CREDS = credentials('dockerhub')
   }
 
   stages {
     stage("CI Stages") {
-      
+      //running CI tests in docker container  
       agent {
         docker {
           image 'reactapp-img:latest'
@@ -37,6 +45,7 @@ pipeline {
           }
         }
 
+        //Install js linting, jscpd for static analysis
         stage('Build') {
           steps {
             sh 'npm install'
@@ -47,6 +56,7 @@ pipeline {
           }
         }
 
+        //Code statis analysis and report collection
         stage('Static Analysis') {
           steps {
             sh 'node_modules/eslint/bin/eslint.js --ext .js -f checkstyle -o linttext.xml src/'
@@ -59,6 +69,7 @@ pipeline {
           }
         }
 
+        // unit/component test code and collect coverage reports
         stage('Test') {
           steps {
             sh 'npm test -- --coverage'
@@ -76,6 +87,7 @@ pipeline {
         }
       }
 
+      //cleanup workspace
       post {
         always {
           sh "chmod -R 777 ."
@@ -84,6 +96,7 @@ pipeline {
       }
     }   
 
+    //pull to test server 
     stage('Pull to test server') {
       when {
         expression {
@@ -96,6 +109,7 @@ pipeline {
       }
     }
 
+    //Package the build for production if there are changes on branch branch
     stage('Package for Production') {
       when {
         expression {
@@ -108,13 +122,10 @@ pipeline {
         sh 'echo Call script to deploy container on production or just build pull code and perform blue green deployment with aws instances'
 
         sh """
-          rm -fr /var/www/jenkins-workspace/emoji-search/
-        """
-
-        sh """
           git clone https://github.com/shridhars/emoji-search.git emoji-search
         """
 
+        //building docker image with latest code
         sh """
           docker build -t shridharalve/node:reactapp-"${env.BUILD_NUMBER}" -f emoji-search/automation/Dockerfile-production .
         """        
@@ -122,6 +133,8 @@ pipeline {
         sh """
           docker login -u="${env.DOCKER_REG_CREDS_USR}" -p="${env.DOCKER_REG_CREDS_PSW}"
         """
+
+        //pushing docker image to dockerhub
         sh """
           docker push shridharalve/node:reactapp-"${env.BUILD_NUMBER}"        
         """
@@ -135,7 +148,7 @@ pipeline {
     always {
       cleanWs()
     }
-
+    //Buidl status notification step on slack and github
     success {
       githubNotify account: env.GIT_ACC, context: 'continuous-integration/jenkins', credentialsId: env.GIT_CRED_TOKEN, description: '', gitApiUrl: '', repo: env.REPO, sha: env.GIT_COMMIT_HASH, status: 'SUCCESS', targetUrl: ''
 
