@@ -116,7 +116,7 @@ pipeline {
         """
 
         sh """
-          docker build -t shridharalve/node:reactapp-"${env.BUILD_NUMBER}" -f emoji-search/Dockerfile-production .
+          docker build -t shridharalve/node:reactapp-"${env.BUILD_NUMBER}" -f emoji-search/automation/Dockerfile-production .
         """        
 
         sh """
