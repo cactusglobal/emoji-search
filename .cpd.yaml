@@ -1,0 +1,34 @@
+#.cpd.yaml
+languages:
+  - javascript
+  - coffeescript
+  - typescript
+  - php
+  - python
+  - jsx
+  - haxe
+  - yaml
+  - css
+  - ruby
+  - go
+  - swift
+  - twig
+  - java
+  - clike    # c++, c, objective-c source
+  - csharp      # c# source
+  - htmlmixed   # html mixed source like knockout.js templates
+path: "src/"
+exclude:
+  - "**/*.min.js"
+  - "**/*.mm.js"
+  - "**/node_modules/**"
+languages-exts:
+    coffeescript:
+        - coffee
+    javascript:
+        - es
+        - es5
+        - es6
+        - es7
+        - js
+output: jscpd.xml
