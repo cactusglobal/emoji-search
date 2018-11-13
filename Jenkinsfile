@@ -28,7 +28,7 @@ pipeline {
       //running CI tests in docker container  
       agent {
         docker {
-          image 'reactapp-img:latest'
+          image 'shridharalve/node:reactapp-img'
           args '-u root'
           reuseNode true
         }

@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template to create an ec2 instance with security group VPC"
+Parameters:
+  KeyName:
+    Description : Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: String
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    Default: ''
+  InstanceType:
+    Type: String
+    Description: WebServer EC2 instance type
+    Default: t3.small
+    AllowedValues: 
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t3.small
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+  SecurityGroups:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Give the name/id of an existing security group or type to name to get suggestions
+    #AllowedValues: List<AWS::EC2::SecurityGroup::GroupName>
+    MinLength: 4
+    MaxLength: 30
+    AllowedPattern: "[a-zA-Z0-9-]+"
+  InstanceName:
+    Type: String
+    Description: First tag for the instance eg. nv-ec-jenkins-prod-app-1-a
+    Default: "nv-ec-jenkins-prod-app-1-a"
+    MinLength: 4
+    MaxLength: 50
+    AllowedPattern: "[a-zA-Z0-9-=]+"
+  ResourceDepartment:
+    Type: String
+    Description: second tag for the instance eg. Technology
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: "[a-zA-Z0-9-]+"
+  ResourceEntity:
+    Type: String
+    Description: Third tag for the instance eg. Automation
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: "[a-zA-Z0-9-]+"
+  ResourceEnv:
+    Type: String
+    Description: Fourth tag for the instance eg. Prod or test
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: "[a-zA-Z0-9-]+"
+  ResourceDeploygroup:
+    Type: String
+    Description: Fifth tag for the instance eg. nv-ec-jenkins-prod
+    MinLength: 3
+    MaxLength: 50
+    Default: "nv-ec-jenkins-prod"
+    AllowedPattern: "[a-zA-Z0-9-]*"
+  Subnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: Name of the subnet zone in which the instance will be provisioned
+  ImageId:
+    Type: String
+    Description: Ami Id of the instance if any
+    Default: ami-0ac019f4fcb7cb7e6
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: "[a-zA-Z0-9-]+"
+    ConstraintDescription: must be a valid EC2 instance type.
+  IamInstanceProfile:
+    Type: String
+    Default: ""
+    Description: Instance Role to be associated with the instance
+    ConstraintDescription: must be a valid EC2 instance type.
+  isInPublicSubnet:
+    Type: String
+    Default: "false"  
+Conditions:
+  isKeyEntered: !Not [ !Equals [ "", !Ref KeyName ] ]
+  isRoleAttached: !Not [ !Equals [ "", !Ref IamInstanceProfile ] ]
+  HasPublicDns: !Equals ["true", !Ref isInPublicSubnet]
+Resources:
+  EC2:
+    Type: "AWS::EC2::Instance"
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !Ref ImageId # Dynamic mapping + Pseudo Parameter
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref Subnet
+      KeyName: !If [isKeyEntered, !Ref KeyName, !Ref "AWS::NoValue"]
+      Tenancy: default
+      IamInstanceProfile: !If [isRoleAttached, !Ref IamInstanceProfile, !Ref "AWS::NoValue"]
+      SecurityGroupIds: [ !Ref SecurityGroups ] 
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            echo ${InstanceName}.cactusops.com > /etc/hostname
+            hostname -F /etc/hostname
+            sed -i 's/.*AWS_DEFAULT_REGION.*/export AWS_DEFAULT_REGION=${AWS::Region}/' /etc/environment
+            source /etc/environment
+            apt-get update
+            apt-get install -y apt-transport-https git docker.io openjdk-8-jdk htop 
+            wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -
+            echo deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list
+            apt-get update
+            apt-get install -y jenkins
+            usermod -aG docker jenkins
+      Tags:
+        - 
+          Key: "Name"
+          Value: !Ref InstanceName
+        -
+          Key: "Department"
+          Value: !Ref ResourceDepartment
+        -
+          Key: "Entity"
+          Value: !Ref ResourceEntity
+        -
+          Key: "deploygroup"
+          Value: !Ref ResourceDeploygroup
+        -
+          Key: "Env"
+          Value: !Ref ResourceEnv
+Outputs:
+  ec2instanceId:
+    Description: Ec2 instance ID
+    Value: !Ref EC2
+  ec2PrivateDnsName:
+    Description: Ec2 ec2PrivateDnsName
+    Value: !GetAtt EC2.PrivateDnsName
+  ec2PublicDnsName:
+    Description: Ec2 ec2PublicDnsName
+    Value: !GetAtt EC2.PublicDnsName
+    Condition: HasPublicDns 
+  ec2PrivateIp:
+    Description: Ec2 ec2PrivateIp
+    Value: !GetAtt EC2.PrivateIp
+  # ec2PublicIp:
+  #   Description: Ec2 ec2PublicIp
+  #   Value: !GetAtt EC2.PublicIp
+  #   Condition: HasPublicDns 
+  ec2instanceName:
+    Description: Ec2 InstanceName
+    Value: !Sub ${InstanceName}
+    # Export: 
+    #   Name: !Sub "ec2-${InstanceName}"   
