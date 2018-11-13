@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#post commit hook to build application on every commit
+
 if [[ $(docker ps -a --filter "name=reactapp" --format "{{.Names}}" | wc -l) > 0 ]];then
   if [[ $(docker ps --filter "name=reactapp" --format "{{.Names}}" | wc -l) == 0 ]];then  
     docker start reactapp   
@@ -11,4 +13,4 @@ else
   docker run -d -v /var/www/emoji-search:/var/www/emoji-search --name reactapp shridharalve/node:reactapp-img  
 fi
 
-docker exec -d reactapp bash -c "cd /var/www/emoji-search/ && npm install --unsafe && npm run build"
+docker exec -d reactapp bash -c "cd /var/www/emoji-search/ && npm install --unsafe && npm run build  && npm run build && PORT=80 npm start > ~/app.log 2>&1 &"
