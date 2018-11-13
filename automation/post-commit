@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo $GIT_DIR
+
+exit
+
 if [[ $(docker ps -a --filter "name=reactapp" --format "{{.Names}}" | wc -l) > 0 ]];then
   if [[ $(docker ps --filter "name=reactapp" --format "{{.Names}}" | wc -l) == 0 ]];then  
     docker start reactapp   
@@ -7,9 +11,9 @@ if [[ $(docker ps -a --filter "name=reactapp" --format "{{.Names}}" | wc -l) > 0
 else  
   if [[ $(docker images --format "{{.Repository}}" | grep "reactapp-img" | wc -l) == 0 ]];then
     git clone https://github.com/shridhars/emoji-search.git $HOME
-    docker build -t reactapp-img -f $HOME/emoji-search/Dockerfile
+    docker build -t shridharalve/node:reactapp-img -f $HOME/emoji-search/Dockerfile
   fi
-  docker run -d -v /var/www/emoji-search:/var/www/emoji-search --name reactapp reactapp-img:latest  
+  docker run -d -v /var/www/emoji-search:/var/www/emoji-search --name reactapp shridharalve/node:reactapp-img  
 fi
 
 docker exec -d reactapp bash -c "cd /var/www/emoji-search/ && npm install --unsafe && npm run build"
