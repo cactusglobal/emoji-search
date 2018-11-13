@@ -8,7 +8,7 @@ if [[ $(docker ps -a --filter "name=reactapp" --format "{{.Names}}" | wc -l) > 0
   fi  
 else  
   if [[ $(docker images --format "{{.Repository}}" | grep "reactapp-img" | wc -l) == 0 ]];then
-    docker build -t shridharalve/node:reactapp-img -f "$(git rev-parse --show-toplevel)"/automation/Dockerfile
+    docker build -t shridharalve/node:reactapp-img -f "$(git rev-parse --show-toplevel)"/automation/Dockerfile .
   fi
   docker run -d -v /var/www/emoji-search:/var/www/emoji-search --name reactapp shridharalve/node:reactapp-img  
 fi
