@@ -3,6 +3,7 @@
 echo $GIT_DIR
 
 
+
 exit
 
 if [[ $(docker ps -a --filter "name=reactapp" --format "{{.Names}}" | wc -l) > 0 ]];then
